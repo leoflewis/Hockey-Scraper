@@ -22,7 +22,7 @@ def get_schedule(date_from, date_to):
     :return: raw json of schedule of date range
     """
     page_info = {
-        "url": 'https://statsapi.web.nhl.com/api/v1/schedule?startDate={a}&endDate={b}'.format(a=date_from, b=date_to),
+        "url": 'https://api-web.nhle.com/v1/schedule/{a}'.format(a=date_from, b=date_to),
         "name": date_from + "_" + date_to,
         "type": "json_schedule",
         "season": shared.get_season(date_from),
@@ -54,7 +54,7 @@ def chunk_schedule_calls(from_date, to_date):
         t_chunk = datetime.strftime(from_date + timedelta(days=min(num_days-1, offset+days_per_call-1)), "%Y-%m-%d")
 
         chunk_sched = get_schedule(f_chunk, t_chunk)
-        sched.append(chunk_sched['dates'])
+        sched.append(chunk_sched['gameWeek'])
 
     return sched
 
@@ -116,20 +116,20 @@ def scrape_schedule(date_from, date_to, preseason=False, not_over=False):
     for chunk in schedule_json:
         for day in chunk:
             for game in day['games']:
-                if game['status']['detailedState'] == 'Final' or not_over:
+                if game['gameState'] == 'Final' or not_over:
                     game_id = int(str(game['gamePk'])[5:])
 
                     if (game_id >= 20000 or preseason) and game_id < 40000:
                         schedule.append({
-                                 "game_id": game['gamePk'], 
+                                 "game_id": game['id'], 
                                  "date": day['date'], 
-                                 "start_time": datetime.strptime(game['gameDate'][:-1], "%Y-%m-%dT%H:%M:%S"),
-                                 "venue": game['venue'].get('name'),
-                                 "home_team": shared.get_team(game['teams']['home']['team']['name']),
-                                 "away_team": shared.get_team(game['teams']['away']['team']['name']),
-                                 "home_score": game['teams']['home'].get("score"),
-                                 "away_score": game['teams']['away'].get("score"),
-                                 "status": game["status"]["abstractGameState"]
+                                 "start_timeUTC": datetime.strptime(game['startTimeUTC']),
+                                 "venue": game['venue']['default'],
+                                 "home_team": shared.get_team(game['homeTeam']['abbrev']),
+                                 "away_team": shared.get_team(game['awayTeam']['abbrev']),
+                                 "home_score": game['homeTeam']['home'],
+                                 "away_score": game['awayTeam']['score'],
+                                 "status": game["gameState"]
                         })
 
 
