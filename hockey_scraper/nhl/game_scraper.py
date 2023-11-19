@@ -61,15 +61,15 @@ def get_players_json(game_json):
 
     for player in game_json['rosterSpots']:
         if player['teamId'] == homeid:
-            players["Home"][str(player["firstName"] + " " + player["lastName"]).upper()] = {
+            players["Home"][str(player["firstName"]['default'] + " " + player["lastName"]['default']).upper()] = {
                 "id": player['playerId'], 
-                "last_name": player["lastName"].upper()
+                "last_name": str(player["lastName"]['default']).upper()
             }
 
         if player['teamId'] == awayid:
-            players["Away"][str(player["firstName"] + " " + player["lastName"]).upper()] = {
+            players["Away"][str(player["firstName"]['default'] + " " + player["lastName"]['default']).upper()] = {
                 "id": player['playerId'],
-                "last_name": player["lastName"].upper()
+                "last_name": str(player["lastName"]['default']).upper()
             }
     
     return players
@@ -327,11 +327,12 @@ def scrape_game(game_id, date, if_scrape_shifts):
     :return: DataFrame of pbp info
              (optional) DataFrame with shift info otherwise just None
     """
-    print(' '.join(['Scraping Game ', game_id, date]))
+    print(' '.join(['Scraping Game ', str(game_id)]))
     shifts_df = None
 
     roster = playing_roster.scrape_roster(game_id)
-    game_json = json_pbp.get_pbp(game_id)           # Contains both player info (id's) and plays
+    game_json, date = json_pbp.get_pbp(game_id)           # Contains both player info (id's) and plays. 
+    # ^ I adjusted this to return the date as well. - leo
     players, teams = get_teams_and_players(game_json, roster, game_id)
 
     # Game fails without any of these

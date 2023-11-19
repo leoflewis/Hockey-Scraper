@@ -18,7 +18,7 @@ def get_roster(game_id):
     game_id = str(game_id)
 
     page_info = {
-        "url": 'http://www.nhl.com/scores/htmlreports/{}{}/RO{}.HTM'.format(game_id[:4], int(game_id[:4]) + 1, game_id[4:]),
+        "url": 'http://www.nhl.com/scores/htmlreports/{}{}/RO{}.HTM'.format(str(game_id)[:4], int(str(game_id)[:4]) + 1, str(game_id)[4:]),
         "name": game_id,
         "type": "html_roster",
         "season": game_id[:4],

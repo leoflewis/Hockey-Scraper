@@ -22,13 +22,15 @@ def get_schedule(date_from, date_to):
     :return: raw json of schedule of date range
     """
     page_info = {
-        "url": 'https://api-web.nhle.com/v1/schedule/{a}'.format(a=date_from, b=date_to),
-        "name": date_from + "_" + date_to,
+        "url": 'https://api-web.nhle.com/v1/schedule/{a}'.format(a=date_from),
+        "name": date_from,
         "type": "json_schedule",
         "season": shared.get_season(date_from),
     }
-
-    return json.loads(shared.get_file(page_info, force=True))
+    data = shared.get_file(page_info, force=True)
+    if data == None:
+        return None
+    return json.loads(data)
 
 
 def chunk_schedule_calls(from_date, to_date):
@@ -47,14 +49,15 @@ def chunk_schedule_calls(from_date, to_date):
     to_date = datetime.strptime(to_date, "%Y-%m-%d")
     num_days = (to_date - from_date).days + 1  # +1 since difference is looking for total number of days
 
-    for offset in range(0, num_days, days_per_call):
+    for offset in range(0, num_days, 1):
         f_chunk = datetime.strftime(from_date + timedelta(days=offset), "%Y-%m-%d")
 
         # We need the min bec. if the chunks are evenly sized this prevents us from overshooting the max
-        t_chunk = datetime.strftime(from_date + timedelta(days=min(num_days-1, offset+days_per_call-1)), "%Y-%m-%d")
+        t_chunk = datetime.strftime(from_date + timedelta(days=min(num_days-1, offset)), "%Y-%m-%d")
 
         chunk_sched = get_schedule(f_chunk, t_chunk)
-        sched.append(chunk_sched['gameWeek'])
+        if chunk_sched != None:
+            sched.append(chunk_sched['gameWeek'][0]['games'])
 
     return sched
 
@@ -88,13 +91,12 @@ def get_dates(games):
 
     # TODO: Assume true is live here -> Workaround
     schedule = scrape_schedule(date_from, date_to, preseason=True, not_over=True)
-
+    
     # Only return games we want in range
     games_list = []
     for game in schedule:
         if str(game['game_id']) in games:
             games_list.extend([game])
-
     return games_list
 
 
@@ -114,23 +116,23 @@ def scrape_schedule(date_from, date_to, preseason=False, not_over=False):
     schedule_json = chunk_schedule_calls(date_from, date_to)
 
     for chunk in schedule_json:
-        for day in chunk:
-            for game in day['games']:
-                if game['gameState'] == 'Final' or not_over:
-                    game_id = int(str(game['gamePk'])[5:])
+        for game in chunk:
+            if game['gameState'] == 'OFF' or not_over:
+                game_id = int(str(game['id'])[5:])
+                if (game_id >= 20000 or preseason) and game_id < 40000:
+                    game_data = {
+                        "game_id": game['id'], 
+                        "date": game['startTimeUTC'].split("T")[0], 
+                        "start_timeUTC": game['startTimeUTC'],
+                        "venue": game['venue']['default'],
+                        "home_team": shared.get_team(game['homeTeam']['abbrev']),
+                        "away_team": shared.get_team(game['awayTeam']['abbrev']),
+                        "home_score": game['homeTeam']['score'],
+                        "away_score": game['awayTeam']['score'],
+                        "status": game["gameState"]
+                    }
 
-                    if (game_id >= 20000 or preseason) and game_id < 40000:
-                        schedule.append({
-                                 "game_id": game['id'], 
-                                 "date": day['date'], 
-                                 "start_timeUTC": datetime.strptime(game['startTimeUTC']),
-                                 "venue": game['venue']['default'],
-                                 "home_team": shared.get_team(game['homeTeam']['abbrev']),
-                                 "away_team": shared.get_team(game['awayTeam']['abbrev']),
-                                 "home_score": game['homeTeam']['home'],
-                                 "away_score": game['awayTeam']['score'],
-                                 "status": game["gameState"]
-                        })
-
+                    schedule.append(game_data)    
+                        
 
     return schedule

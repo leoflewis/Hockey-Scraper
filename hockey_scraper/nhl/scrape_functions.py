@@ -59,7 +59,7 @@ def print_errors(detailed=True):
 
 def scrape_list_of_games(games, if_scrape_shifts, verbose=False):
     """
-    Given a list of game_id's (and a date for each game) it scrapes them
+    Given a list of dictionaries of game_id's it scrapes them
     
     :param games: list of [game_id, date]
     :param if_scrape_shifts: Boolean indicating whether to also scrape shifts
@@ -69,9 +69,8 @@ def scrape_list_of_games(games, if_scrape_shifts, verbose=False):
     """
     pbp_dfs = []
     shifts_dfs = []
-
     for game in games:
-        pbp_df, shifts_df = game_scraper.scrape_game(str(game["game_id"]), game["date"], if_scrape_shifts)
+        pbp_df, shifts_df = game_scraper.scrape_game(game['game_id'], None, if_scrape_shifts)
         if pbp_df is not None:
             pbp_dfs.extend([pbp_df])
         if shifts_df is not None:
@@ -233,9 +232,11 @@ def scrape_games(games, if_scrape_shifts, data_format='csv', rescrape=False, doc
     shared.add_dir(docs_dir)
     shared.if_rescrape(rescrape)
 
-    # Create List of game_id's and dates
-    games_list = json_schedule.get_dates(games)
-
+    # I removed this because date info can be obtained from the PBP response, no need to spend more time searching for it when single games are requested.
+    games_list = []  
+    
+    for game in games:
+        games_list.append({"game_id": game})
     # Scrape pbp and shifts
     pbp_df, shifts_df = scrape_list_of_games(games_list, if_scrape_shifts, verbose)
 

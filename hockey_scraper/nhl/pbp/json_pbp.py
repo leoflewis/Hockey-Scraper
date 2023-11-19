@@ -10,7 +10,7 @@ import hockey_scraper.utils.shared as shared
 
 def get_pbp(game_id):
     """
-    Given a game_id it returns the raw json
+    Given a game_id it returns the raw json and the date
     Ex: https://api-web.nhle.com/v1/gamecenter/2023010044/play-by-play
     
     :param game_id: string - the game
@@ -21,15 +21,14 @@ def get_pbp(game_id):
         "url": 'https://api-web.nhle.com/v1/gamecenter/{}/play-by-play'.format(game_id),
         "name": game_id,
         "type": "json_pbp",
-        "season": game_id[:4],
+        "season": str(game_id)[:4],
     }
     response = shared.get_file(page_info)
-
     if not response:
         shared.print_error("Json pbp for game {} is either not there or can't be obtained".format(game_id))
         return {}
     else:
-        return json.loads(response)
+        return json.loads(response), json.loads(response)['gameDate']
 
 
 def get_teams(pbp_json):
